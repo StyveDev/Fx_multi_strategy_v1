@@ -1,0 +1,79 @@
+initial_cash: 100000.0   # change this to test small-capital survivability (see capital_stress_test.py)
+
+mt5:
+  login: 0
+  password_env: "MT5_PASSWORD"
+  password: ""
+  server: ""
+  terminal_path: ""
+  attach_only: true      # true = use whatever account is already logged into the terminal (recommended for live trading)
+  timeframe: "H1"
+  date_from: "2024-01-01"
+  date_to: "2026-08-07"
+
+# STRICTLY these two pairs — the engine raises an error if anything else is listed here.
+assets:
+  - name: "EURUSD"
+    price_file: "sample_data/eurusd.csv"
+    mt5_symbol: "EURUSD"
+    transaction_cost_pct: 0.0002   # ~2 pips round-trip approximation — tighten/loosen to your broker's real spread
+    max_allocation_pct: 0.8
+    account_currency_is_quote: true    # USD account, EURUSD quoted USD-per-EUR: quote currency (USD) = account currency
+
+  - name: "USDJPY"
+    price_file: "sample_data/usdjpy.csv"
+    mt5_symbol: "USDJPY"
+    transaction_cost_pct: 0.0002
+    max_allocation_pct: 0.8
+    account_currency_is_quote: false   # USD account, USDJPY quoted JPY-per-USD: BASE currency (USD) = account currency — opposite conversion direction from EURUSD
+
+strategy:
+  regime_fit_fraction: 0.3   # first 30% of history used ONLY to fit the HMM, never traded (avoids look-ahead)
+  hmm_n_states: 2            # trending / ranging
+  backcast_window: 30        # rolling accuracy window feeding the shrink ratio (unchanged from original system)
+  mean_reversion:
+    window: 20
+    entry_threshold: 2.0     # |z| >= this to enter
+    exit_threshold: 0.5      # |z| <= this to flatten
+  trend_following:
+    ema_fast: 12
+    ema_slow: 26
+    adx_window: 14
+    adx_threshold: 25.0      # ADX must exceed this for the crossover signal to be trusted
+
+risk:
+  max_portfolio_drawdown_pct: 0.30
+  cooldown_days_after_breach: 5
+  min_trade_notional: 1.0
+  volatility_scaling:
+    enabled: true
+    lookback: 20
+    high_vol_annualized_pct: 80
+    shrink_multiplier: 0.5
+  liquidity_filter:
+    enabled: true
+    min_relative_volume: 0.3
+  margin:
+    leverage: 100          # 1:100 — set to match your actual broker/account
+    lot_size: 100000        # standard lot = 100,000 units of base currency
+    min_lot: 0.001            # broker's minimum tradeable lot (micro lot)
+    lot_step: 0.01             # smallest increment between tradeable lot sizes
+    margin_buffer_pct: 0.10     # always keep this % of equity un-margined as a safety buffer
+
+optimization:
+  train_fraction: 0.7   # optimize params on the first 70% of history, validate on the remaining 30%
+  metric: "calmar"       # which metric to maximize: "calmar", "sharpe", "total_return", "net_pnl"
+  param_grid:
+    mean_reversion.window: [10, 20, 30]
+    mean_reversion.entry_threshold: [1.5, 2.0, 2.5]
+    trend_following.ema_fast: [8, 12, 16]
+    trend_following.ema_slow: [21, 26, 34]
+    trend_following.adx_threshold: [20, 25, 30]
+
+capital_stress_test:
+  levels: [50, 100, 250, 500, 1000, 5000, 10000]
+
+logging:
+  log_dir: "logs"
+  log_file: "system.log"
+  level: "INFO"
