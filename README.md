@@ -72,4 +72,4 @@ In testing, this system's default $1,000 sits right at the edge of what standard
 - **V2 — Parameter optimizer**: grid search over strategy parameters with a train/test split to catch overfitting, ranking by Sharpe/Calmar/etc.
 - **V3 — Live MT5 trading**: connects to your already-logged-in MT5 terminal, reuses this exact signal-generation code (so live behavior can't silently diverge from what you backtested), with a dry-run safety default before any real orders get sent.
 
-Say the word when you want either built out and verified.
+
